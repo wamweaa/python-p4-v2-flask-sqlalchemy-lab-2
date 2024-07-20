@@ -11,7 +11,7 @@ metadata = MetaData(naming_convention={
 db = SQLAlchemy(metadata=metadata)
 
 
-class Customer(db.Model):
+class Customer(db.Model, SerializerMixin):
     __tablename__ = 'customers'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -19,9 +19,12 @@ class Customer(db.Model):
 
     def __repr__(self):
         return f'<Customer {self.id}, {self.name}>'
+    reviews = db.Relationship('Review', back_populates='customer')
+    items = association_proxy('reviews','item')
+    serialize_rules = ('-reviews.customer',)
 
 
-class Item(db.Model):
+class Item(db.Model, SerializerMixin):
     __tablename__ = 'items'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -30,3 +33,22 @@ class Item(db.Model):
 
     def __repr__(self):
         return f'<Item {self.id}, {self.name}, {self.price}>'
+    reviews = db.Relationship('Review', back_populates='item')
+
+    serialize_rules = ('-reviews.item',)
+
+class Review(db.Model, SerializerMixin):
+    __tablename__ = 'reviews'
+
+    id = db.Column(db.Integer, primary_key=True)
+    comment = db.Column(db.String)
+    customer_id = db.Column(db.Integer, db.ForeignKey('customers.id'))
+    item_id = db.Column(db.Integer, db.ForeignKey('items.id'))
+
+    def __repr__(self):
+        return f'<Review {self.id}, {self.comment}, {self.customer_id}, {self.item_id}>'
+
+    customer = db.Relationship('Customer', back_populates='reviews')
+    item = db.Relationship('Item', back_populates='reviews')
+
+    serialize_rules = ('-customer.reviews','-item.reviews',)
